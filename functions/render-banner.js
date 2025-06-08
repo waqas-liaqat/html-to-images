@@ -1,53 +1,48 @@
 const chromium = require("chrome-aws-lambda");
+const puppeteer = require("puppeteer-core");
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: "Only POST method is supported",
-    };
-  }
-
-  let browser = null;
-
   try {
-    const { html, width = 800, height = 600 } = JSON.parse(event.body || "{}");
+    const { html, width = 1200, height = 630 } = JSON.parse(event.body || '{}');
 
     if (!html) {
       return {
         statusCode: 400,
-        body: "Missing HTML content",
+        body: JSON.stringify({ error: 'Missing "html" in request body' }),
       };
     }
 
-    browser = await chromium.puppeteer.launch({
+    const browser = await puppeteer.launch({
       args: chromium.args,
+      defaultViewport: {
+        width: parseInt(width),
+        height: parseInt(height),
+      },
       executablePath: await chromium.executablePath,
       headless: chromium.headless,
-      defaultViewport: { width: parseInt(width), height: parseInt(height) },
     });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    const screenshot = await page.screenshot({ type: "png", encoding: "base64" });
+    const imageBuffer = await page.screenshot({ type: 'png' });
+
+    await browser.close();
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        image: `data:image/png;base64,${screenshot}`,
+        image: `data:image/png;base64,${imageBuffer.toString('base64')}`,
       }),
     };
-  } catch (error) {
-    console.error("Rendering error:", error);
+  } catch (err) {
+    console.error('Rendering error:', err.message);
     return {
       statusCode: 500,
-      body: "Error rendering image.",
+      body: JSON.stringify({ error: 'Error rendering image.' }),
     };
-  } finally {
-    if (browser !== null) {
-      await browser.close();
-    }
   }
 };

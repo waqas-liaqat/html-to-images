@@ -1,14 +1,8 @@
 {
-  "name": "html-to-image-converter",
+  "name": "html-to-image-netlify",
   "version": "1.0.0",
-  "description": "Serverless HTML to image converter using Puppeteer on Netlify",
-  "main": "functions/render-banner.js",
-  "scripts": {
-    "start": "netlify dev"
-  },
   "dependencies": {
     "chrome-aws-lambda": "10.1.0",
     "puppeteer-core": "10.1.0"
-  },
-  "license": "MIT"
+  }
 }
