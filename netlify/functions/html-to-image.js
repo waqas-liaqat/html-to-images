@@ -1,44 +1,56 @@
-const express = require("express");
-const serverless = require("serverless-http");
-const { createCanvas, loadImage } = require("canvas");
-const nodeHtmlToImage = require("node-html-to-image");
+// netlify/functions/htmlToImage.js
+const chromium = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer-core');
 
-const app = express();
-app.use(express.json({ limit: "5mb" }));
-
-app.post("/html-to-image", async (req, res) => {
-  const { html } = req.body;
-
-  if (!html) {
-    return res.status(400).json({ error: "Missing HTML in request body" });
-  }
-
+exports.handler = async (event, context) => {
   try {
-    // Create canvas with the required size (1350x1080)
-    const canvas = createCanvas(1350, 1080);
-    const ctx = canvas.getContext("2d");
+    // Only accept POST
+    if (event.httpMethod !== 'POST') {
+      return { statusCode: 405, body: 'Method Not Allowed' };
+    }
 
-    // Render the HTML to canvas
-    await nodeHtmlToImage({
-      html,
-      type: "png",
-      encoding: "buffer",
-      puppeteer: null, // Disable puppeteer
-      quality: 100,
-      transparent: false,
-      viewport: { width: 1350, height: 1080 },
-      canvas: canvas,
-      waitUntil: "networkidle0"
+    // Parse HTML input from JSON body
+    let body = event.body || '';
+    if (event.isBase64Encoded) {
+      body = Buffer.from(body, 'base64').toString();
+    }
+    let payload;
+    try {
+      payload = JSON.parse(body);
+    } catch (err) {
+      return { statusCode: 400, body: 'Invalid JSON' };
+    }
+    const html = payload.html;
+    if (!html) {
+      return { statusCode: 400, body: 'Missing html field' };
+    }
+
+    // Launch headless Chrome using chrome-aws-lambda
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 1350, height: 1080 },
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
     });
 
-    const imageBuffer = canvas.toBuffer("image/png");
+    const page = await browser.newPage();
+    // Set the HTML content. Using waitUntil to ensure rendering is complete.
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Optional: add delay if needed for fonts/scripts: await page.waitForTimeout(500);
 
-    res.setHeader("Content-Type", "image/png");
-    res.send(imageBuffer);
+    // Take a screenshot. Use PNG for lossless quality.
+    const imageBuffer = await page.screenshot({ type: 'png' });
+    await browser.close();
+
+    // Return image as base64 (Netlify requires base64 for binary content)
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'image/png' },
+      body: imageBuffer.toString('base64'),
+      isBase64Encoded: true,    // Important for binary response
+    };
   } catch (err) {
-    console.error("Error rendering image:", err);
-    res.status(500).json({ error: "Failed to render image" });
+    // On error, return 500
+    return { statusCode: 500, body: 'Error: ' + err.message };
   }
-});
-
-module.exports.handler = serverless(app);
+};
