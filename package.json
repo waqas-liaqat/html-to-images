@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "html-to-image-tool",
   "version": "1.0.0",
@@ -12,3 +13,6 @@
     "serverless-http": "^3.0.1"
   }
 }
+=======
+
+>>>>>>> 213399cce2a7cfd0382773072ff7a01a871e7783
