@@ -1,7 +1,3 @@
-<<<<<<< HEAD
 [build]
   functions = "netlify/functions"
   publish = "public"
-=======
-
->>>>>>> 213399cce2a7cfd0382773072ff7a01a871e7783
