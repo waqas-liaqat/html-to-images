@@ -1,10 +1,10 @@
-import chromium from 'chrome-aws-lambda';
-import { Buffer } from 'buffer';
-import { builder } from '@netlify/functions';
+const chromium = require('chrome-aws-lambda');
+const { Buffer } = require('buffer');
 
-const handler = async (event) => {
+exports.handler = async function (event, context) {
   try {
     const { html } = JSON.parse(event.body || '{}');
+
     if (!html) {
       return {
         statusCode: 400,
@@ -45,5 +45,3 @@ const handler = async (event) => {
     };
   }
 };
-
-export const handler = builder(handler);
