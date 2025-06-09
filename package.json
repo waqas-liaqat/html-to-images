@@ -1,14 +1,2 @@
-{
-  "name": "html-to-image-tool",
-  "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "netlify dev"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "node-html-to-image": "^3.2.0",
-    "serverless-http": "^3.0.1"
-  }
-}
+npm uninstall puppeteer
+npm install puppeteer-core chrome-aws-lambda
