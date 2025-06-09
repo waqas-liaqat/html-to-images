@@ -1,7 +1,6 @@
 const express = require("express");
 const serverless = require("serverless-http");
-const chrome = require("chrome-aws-lambda");
-const puppeteer = require("puppeteer-core");
+const { createCanvas, loadImage } = require("canvas");
 const nodeHtmlToImage = require("node-html-to-image");
 
 const app = express();
@@ -15,30 +14,27 @@ app.post("/html-to-image", async (req, res) => {
   }
 
   try {
-    const browser = await puppeteer.launch({
-      args: chrome.args,
-      executablePath: await chrome.executablePath,
-      headless: chrome.headless,
-    });
+    // Create canvas with the required size (1350x1080)
+    const canvas = createCanvas(1350, 1080);
+    const ctx = canvas.getContext("2d");
 
-    const image = await nodeHtmlToImage({
+    // Render the HTML to canvas
+    await nodeHtmlToImage({
       html,
       type: "png",
       encoding: "buffer",
+      puppeteer: null, // Disable puppeteer
       quality: 100,
       transparent: false,
-      puppeteer: browser,
-      viewport: {
-        width: 1350,
-        height: 1080
-      },
+      viewport: { width: 1350, height: 1080 },
+      canvas: canvas,
       waitUntil: "networkidle0"
     });
 
-    await browser.close();
+    const imageBuffer = canvas.toBuffer("image/png");
 
     res.setHeader("Content-Type", "image/png");
-    res.send(image);
+    res.send(imageBuffer);
   } catch (err) {
     console.error("Error rendering image:", err);
     res.status(500).json({ error: "Failed to render image" });
