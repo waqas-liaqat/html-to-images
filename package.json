@@ -2,12 +2,16 @@
   "name": "html-to-image-tool",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "netlify dev"
   },
   "dependencies": {
+    "puppeteer-core": "^21.3.8",
+    "chrome-aws-lambda": "^10.1.0",
     "express": "^4.18.2",
     "node-html-to-image": "^3.2.0",
     "serverless-http": "^3.0.1"
   }
 }
+
