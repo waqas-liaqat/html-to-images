@@ -4,3 +4,4 @@
     "puppeteer-core": "^10.4.0"
   }
 }
+npm install @vercel/og @resvg/resvg-js
