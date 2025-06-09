@@ -1,47 +1,35 @@
-const chromium = require('chrome-aws-lambda');
-const { Buffer } = require('buffer');
+const express = require("express");
+const serverless = require("serverless-http");
+const nodeHtmlToImage = require("node-html-to-image");
 
-exports.handler = async function (event, context) {
+const app = express();
+app.use(express.json({ limit: "5mb" }));
+
+app.post("/html-to-image", async (req, res) => {
+  const { html } = req.body;
+  if (!html) {
+    return res.status(400).json({ error: "Missing HTML" });
+  }
+
   try {
-    const { html } = JSON.parse(event.body || '{}');
-
-    if (!html) {
-      return {
-        statusCode: 400,
-        body: 'Missing HTML',
-      };
-    }
-
-    const browser = await chromium.puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: {
-        width: 1350,
-        height: 1080,
+    const image = await nodeHtmlToImage({
+      html,
+      type: "png",
+      quality: 100,
+      transparent: false,
+      encoding: "buffer",
+      puppeteerArgs: {
+        args: ['--no-sandbox'],
       },
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
+      waitUntil: 'networkidle0',
     });
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    const buffer = await page.screenshot({ type: 'png' });
-
-    await browser.close();
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'image/png',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: buffer.toString('base64'),
-      isBase64Encoded: true,
-    };
+    res.setHeader("Content-Type", "image/png");
+    res.send(image);
   } catch (err) {
-    return {
-      statusCode: 500,
-      body: `Error: ${err.message}`,
-    };
+    console.error(err);
+    res.status(500).json({ error: "Image rendering failed" });
   }
-};
+});
+
+module.exports.handler = serverless(app);
