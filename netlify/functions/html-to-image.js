@@ -1,40 +1,49 @@
-import { ImageResponse } from '@vercel/og';
-import { Resvg } from '@resvg/resvg-js';
+import chromium from 'chrome-aws-lambda';
+import { Buffer } from 'buffer';
+import { builder } from '@netlify/functions';
 
-export const handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+const handler = async (event) => {
+  try {
+    const { html } = JSON.parse(event.body || '{}');
+    if (!html) {
+      return {
+        statusCode: 400,
+        body: 'Missing HTML',
+      };
+    }
+
+    const browser = await chromium.puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: {
+        width: 1350,
+        height: 1080,
+      },
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const buffer = await page.screenshot({ type: 'png' });
+
+    await browser.close();
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Access-Control-Allow-Origin': '*',
+      },
+      body: buffer.toString('base64'),
+      isBase64Encoded: true,
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: `Error: ${err.message}`,
+    };
   }
-
-  const { html } = JSON.parse(event.body || '{}');
-
-  if (!html) {
-    return { statusCode: 400, body: 'Missing HTML content' };
-  }
-
-  // Render SVG from HTML
-  const svg = await new ImageResponse(html, {
-    width: 1350,
-    height: 1080,
-  }).svg();
-
-  // Convert SVG to PNG
-  const resvg = new Resvg(svg, {
-    fitTo: {
-      mode: 'width',
-      value: 1350,
-    },
-  });
-
-  const pngBuffer = resvg.render().asPng();
-
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'image/png',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: pngBuffer.toString('base64'),
-    isBase64Encoded: true,
-  };
 };
+
+export const handler = builder(handler);

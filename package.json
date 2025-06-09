@@ -1,7 +1,10 @@
 {
+  "name": "html-to-image-netlify",
+  "version": "1.0.0",
+  "type": "module",
   "dependencies": {
+    "puppeteer-core": "^21.3.8",
     "chrome-aws-lambda": "^10.1.0",
-    "puppeteer-core": "^10.4.0"
+    "@netlify/functions": "^1.4.0"
   }
 }
-npm install @vercel/og @resvg/resvg-js
